@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js">
+     </script>
+     <style>
+        canvas
+        {
+            width: 800px;
+            margin: 10px;
+        }
+     </style>
+    </head>
+    <body onLoad="calculate();">
+        <h1>Fahrradschaltungrechner</h1>
+        <label for="kurbel">Kurbel</label><br>
+        <input type="text" id="kurbel" name="kurbel" value="26,36" size="30" onChange="calculate();"><br><br>
+
+        <label for="ritzel">Ritzelpaket</label><br>
+        <input type="text" id="ritzel" name="ritzel" value="11, 13, 15, 17, 19, 21, 23, 26, 30, 34" size="30" onChange="calculate();"><br><br>
+
+        <label for="overlap">Minimaler Unterschied zwischen Gängen (Prozent)</label><br>
+        <input type="range" id="overlap" name="overlap" value="7" onChange="calculate();" min="0" max="100"><span id="percentagedisplay"></span><br><br>
+
+        <canvas id="allRatioChart"></canvas>
+        <canvas id="processedRatioChart"></canvas>
+
+        <script>
+
+            function draw(name, labels, colors, data, text)
+            {
+                new Chart(name, {
+                    type: "bar",
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            backgroundColor: colors,
+                            data: data
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: text
+                            }
+                        }
+                    }
+                });
+            }
+
+            function calculate()
+            {
+                
+                let front = document.getElementById('kurbel').value.split(',').map(Number);
+                let rear = document.getElementById('ritzel').value.split(',').map(Number);
+
+                let overlap = document.getElementById('overlap').value;
+
+                document.getElementById("percentagedisplay").innerText = `${overlap}%`;
+
+                overlap /= 100;
+
+                let data = {
+                    "front": [],
+                    "rear": [],
+                    "ratio": [],
+                    "label": [],
+                    "colors": []
+                };
+
+                const colors = ["red", "green", "blue"];
+                let colorIndex = 0;
+
+                front.forEach((f) => {
+                        rear.forEach((r) => {
+
+                            data.front.push(f);
+                            data.rear.push(f);
+                            data.ratio.push(f / r);
+                            data.label.push(`${f}x${r}`);
+                            data.colors.push(colors[colorIndex]);
+
+                        });
+                        colorIndex++;
+                    }
+                );
+
+                draw("allRatioChart", data.label, data.colors, data.ratio, "All gear ratios");
+
+                new_data = {
+                    "front": [],
+                    "rear": [],
+                    "ratio": [],
+                    "label": [],
+                    "colors": []
+                }
+
+                for(let i = 0; i < data.front.length; i++)
+                {
+                    r = data.ratio[i]
+                    let o = r * overlap;
+                    let low = r - o;
+                    let high = r + o;
+
+                    let found = false;
+
+                    new_data.ratio.forEach((dr) => {
+                        if (dr > low && dr < high)
+                        {
+                            found = true;
+                        }
+                    });
+
+                    if (!found)
+                    {
+                        new_data.ratio.push(r);
+                        new_data.label.push(data.label[i]);
+                        new_data.front.push(data.front[i]);
+                        new_data.rear.push(data.rear[i]);
+                        new_data.colors.push(data.colors[i]);
+                    }
+                }
+
+                draw("processedRatioChart", new_data.label, new_data.colors, new_data.ratio, "Distinct gear ratios");
+            }
+     </script>
+    </body>
+</html>
